@@ -21,8 +21,16 @@
 
 
 (test comment
-      (is (equal #?"// asdf" (cg-c++::comment "asdf")))
-      (is (equal #?"// asdf" (cg-c++::comment "asdf" :rank :low)))
-      (is (equal #?"/// asdf" (cg-c++::comment "asdf" :rank :moderate)))
-      (is (equal #?"//// asdf" (cg-c++::comment "asdf" :rank :high)))
-      (is (equal #?"//// asdf\n//// wer" (cg-c++::comment #?"asdf\nwer" :rank :high))))
+  (is (equal #?"// asdf" (cg-c++::comment "asdf")))
+  (is (equal #?"// asdf" (cg-c++::comment "asdf" :rank :low)))
+  (is (equal #?"/// asdf" (cg-c++::comment "asdf" :rank :moderate)))
+  (is (equal #?"//// asdf" (cg-c++::comment "asdf" :rank :high)))
+  (is (equal #?"//// asdf\n//// wer" (cg-c++::comment #?"asdf\nwer" :rank :high))))
+
+(test include
+  (is (equal #?"#include <asdf>" (cg-c++::include "asdf")))
+  (is (equal #?"#include <stdio.h>" (cg-c++::include 'stdio.h)))
+  (is (equal #?"#include <stdio.h>\n#include <stdlib.h>" (cg-c++::include 'stdio.h 'stdlib.h)))
+  (is (equal #?'#include "stdio.h"\n#include "stdlib.h"' (cg-c++::include 'stdio.h 'stdlib.h
+									  :style t))))
+

@@ -5,7 +5,7 @@
   :description "Generate C++ code (and conveniently use it)"
   :author "Alexandr Popolitov <popolit@gmail.com>"
   :license "GPL"
-  :depends-on (#:cl-trivial-templates #:cl-ppcre #:cl-interpol)
+  :depends-on (#:cl-trivial-templates #:cl-ppcre #:cl-interpol #:iterate)
   :pathname "src/"
   :components ((:file "package")
 	       (:file "utils")

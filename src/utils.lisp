@@ -10,3 +10,18 @@
   (apply #'format `(nil ,format-str ,@args)))
 (defun fart (format-str &rest args)
   (apply #'format `(t ,format-str ,@args)))
+
+(defun camelcaseize (name)
+  (format nil "~{~a~}" (mapcar #'string-capitalize (cl-ppcre:split "-" (string-downcase name)))))
+(defun underscorize (name)
+  (format nil "~{~a~^_~}" (cl-ppcre:split "-" (string-downcase name))))
+
+(defun camcase-if-not-string (name)
+  (if (stringp name)
+      name
+      (camelcaseize name)))
+
+(defun unscore-if-not-string (name)
+  (if (stringp name)
+      name
+      (underscorize name)))
