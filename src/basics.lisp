@@ -33,3 +33,18 @@
 			  (simple-include x :style style))
 			things))))
 
+(defun make-using-name (name-spec)
+  (joinl "::" (append (iter (for spec in (butlast name-spec))
+			    (collect (if (not spec)
+					 ""
+					 (let ((*symbol-stringification-style* :camcase))
+					   (stringify-if-symbol spec)))))
+		      (list (stringify-if-symbol (car (last name-spec)))))))
+
+(defun using (&rest name-spec)
+  #?"using $((make-using-name name-spec));")
+(defun using-typename (&rest name-spec)
+  #?"using typename $((make-using-name name-spec));")
+(defun using-namespace (&rest name-spec)
+  #?"using namespace $((make-using-name name-spec));")
+

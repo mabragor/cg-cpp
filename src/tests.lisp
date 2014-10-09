@@ -34,3 +34,10 @@
   (is (equal #?'#include "stdio.h"\n#include "stdlib.h"' (cg-c++::include 'stdio.h 'stdlib.h
 									  :style t))))
 
+(test using
+  (is (equal "using Asdf::Asdf::asdf;" (cg-c++::using 'asdf 'asdf 'asdf)))
+  (is (equal "using ::AsdfQwe::QWE::asdf;" (cg-c++::using nil 'asdf-qwe '*qwe 'asdf)))
+  (is (equal "using typename Asdf::Asdf::asdf;" (cg-c++::using-typename 'asdf 'asdf 'asdf)))
+  (is (equal "using typename ::AsdfQwe::QWE::asdf;" (cg-c++::using-typename nil 'asdf-qwe '*qwe 'asdf)))
+  (is (equal "using namespace Asdf::Asdf::asdf;" (cg-c++::using-namespace 'asdf 'asdf 'asdf)))
+  (is (equal "using namespace ::AsdfQwe::QWE::asdf;" (cg-c++::using-namespace nil 'asdf-qwe '*qwe 'asdf))))
