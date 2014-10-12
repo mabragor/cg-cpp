@@ -145,11 +145,73 @@ readtable is used."
 ;; * extra newlines for better human-readability
 
 
-(defclass foo-class ()
-  ((msg :accessor foo-msg :initarg :msg)))
+(defclass the-node (standard-object)
+  ((text :accessor node-text :initarg :text)))
 
-(defun make-foo (msg)
-  (make-instance 'foo-class :msg msg))
+(defclass ellipsable-node (the-node)
+  ((elliptic :initarg :elliptic :initform nil)))
 
-(defmethod print-object ((object foo-class) stream)
-  (princ (foo-msg object) stream))
+(defun elliptic-node-p (node)
+  (if (typep node 'ellipsable-node)
+      (slot-value node 'elliptic)))
+
+(defun sen (str)
+  "Make simple elliptic node"
+  (make-instance 'ellipsable-node :text (string str) :elliptic t))
+
+(defun make-node (text)
+  (make-instance 'the-node :text text))
+
+(defmethod print-object :around ((object the-node) stream)
+  (cond (*print-readably* (print-unreadable-object (object stream :type t :identity t)))
+	(*print-escape* (print-unreadable-object (object stream :type t :identity t)))
+	(t (princ (node-text object) stream))))
+
+(defclass if-node (ellipsable-node) ())
+(defclass for-node (ellipsable-node) ())
+(defclass defun-node (ellipsable-node) ())
+
+;; OK, let's first write this IF just how it comes to mind...
+
+(let ((finalizers '(#\, #\;)))
+  (defun finalize-node-with (char node)
+    "Ensures, that correct character is at the end of the text-representation of the node"
+    (let ((str (string-right-trim '(#\space #\newline #\tab) (princ-to-string node))))
+      (if char 
+	  (if (find (char str (1- (length str))) finalizers :test #'char=)
+	      (progn (setf (elt str (1- (length str))) char)
+		     str)
+	      #?"$(str)$(char)")
+	  (if (find (char str (1- (length str))) finalizers :test #'char=)
+	      (subseq str 0 (1- (length str)))
+	      str)))))
+
+(setf *indent-style* :smart-butlast-newline)
+  
+(defun c++if (test then &optional else)
+  (let ((template #?"if ($((princ-to-string test)))###whatever###")
+	elliptic)
+    (declare (special template))
+    (flet ((insert (x)
+	     (ttt-> :whatever #?" {\n    ###x###\n}")
+	     (ttt<> :x (finalize-node-with #\; (princ-to-string x))))
+	   (insert-elliptic (x)
+	     (ttt-> :whatever #?"\n    ###x###")
+	     (ttt<> :x (princ-to-string x))))
+      (flet ((try-insert-else (tmpl elliptic-if-not)
+	       (if else
+		   (progn (ttt-> :whatever tmpl)
+			  (if (elliptic-node-p else)
+			      (progn (insert-elliptic else)
+				     (setf elliptic t))
+			      (progn (insert else)
+				     (setf elliptic nil))))
+		   (setf elliptic elliptic-if-not))))
+	(if (elliptic-node-p then)
+	    (progn (insert-elliptic then)
+		   (try-insert-else #?"\nelse" t))
+	    (progn (insert then)
+		   (try-insert-else #?" else" nil)))))
+    (make-instance 'if-node :text (finalize-template!) :elliptic elliptic)))
+
+
