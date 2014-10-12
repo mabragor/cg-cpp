@@ -41,3 +41,16 @@
   (is (equal "using typename ::AsdfQwe::QWE::asdf;" (cg-c++::using-typename nil 'asdf-qwe '*qwe 'asdf)))
   (is (equal "using namespace Asdf::Asdf::asdf;" (cg-c++::using-namespace 'asdf 'asdf 'asdf)))
   (is (equal "using namespace ::AsdfQwe::QWE::asdf;" (cg-c++::using-namespace nil 'asdf-qwe '*qwe 'asdf))))
+
+
+(test if-node
+  (is (equal #?"if (asdf)\n    asdf" (princ-to-string (cg-c++::c++if "asdf" (cg-c++::sn "asdf")))))
+  (is (equal #?"if (asdf)\n    if (asdf)\n        asdf"
+	     (princ-to-string (cg-c++::c++if "asdf"
+					     (cg-c++::c++if "asdf"
+							    (cg-c++::sn "asdf"))))))
+  (is (equal #?"if (asdf) {\n    asdf;\n} else {\n    qwerty;\n}"
+	     (princ-to-string (cg-c++::c++if "asdf"
+					     "asdf"
+					     "qwerty")))))
+  

@@ -146,18 +146,26 @@ readtable is used."
 
 
 (defclass the-node (standard-object)
-  ((text :accessor node-text :initarg :text)))
+  ((text :accessor node-text :initarg :text)
+   (composite :initarg :composite :initform t)
+   (finalizer-craving :initarg :fin-craving :initform t)))
 
-(defclass ellipsable-node (the-node)
-  ((elliptic :initarg :elliptic :initform nil)))
+(defun composite-node-p (node)
+  (if (typep node 'the-node)
+      (slot-value node 'composite)
+      ;; by default it is safe to assume compositeness
+      t))
 
-(defun elliptic-node-p (node)
-  (if (typep node 'ellipsable-node)
-      (slot-value node 'elliptic)))
+(defun fin-craving-p (node)
+  (if (typep node 'the-node)
+      (slot-value node 'finalizer-craving)
+      ;; by default it is also safe to assume craving for finalizer
+      t))
+  
 
-(defun sen (str)
-  "Make simple elliptic node"
-  (make-instance 'ellipsable-node :text (string str) :elliptic t))
+(defun sn (str)
+  "Make simple node"
+  (make-instance 'the-node :text (string str) :composite nil))
 
 (defun make-node (text)
   (make-instance 'the-node :text text))
@@ -167,9 +175,9 @@ readtable is used."
 	(*print-escape* (print-unreadable-object (object stream :type t :identity t)))
 	(t (princ (node-text object) stream))))
 
-(defclass if-node (ellipsable-node) ())
-(defclass for-node (ellipsable-node) ())
-(defclass defun-node (ellipsable-node) ())
+(defclass if-node (the-node) ())
+(defclass for-node (the-node) ())
+(defclass defun-node (the-node) ())
 
 ;; OK, let's first write this IF just how it comes to mind...
 
@@ -177,11 +185,13 @@ readtable is used."
   (defun finalize-node-with (char node)
     "Ensures, that correct character is at the end of the text-representation of the node"
     (let ((str (string-right-trim '(#\space #\newline #\tab) (princ-to-string node))))
-      (if char 
-	  (if (find (char str (1- (length str))) finalizers :test #'char=)
-	      (progn (setf (elt str (1- (length str))) char)
-		     str)
-	      #?"$(str)$(char)")
+      (if char
+	  (if (not (fin-craving-p node))
+	      (finalize-node-with nil node)
+	      (if (find (char str (1- (length str))) finalizers :test #'char=)
+		  (progn (setf (elt str (1- (length str))) char)
+			 str)
+		  #?"$(str)$(char)"))
 	  (if (find (char str (1- (length str))) finalizers :test #'char=)
 	      (subseq str 0 (1- (length str)))
 	      str)))))
@@ -190,28 +200,31 @@ readtable is used."
   
 (defun c++if (test then &optional else)
   (let ((template #?"if ($((princ-to-string test)))###whatever###")
-	elliptic)
+	fin-craving)
     (declare (special template))
     (flet ((insert (x)
 	     (ttt-> :whatever #?" {\n    ###x###\n}")
-	     (ttt<> :x (finalize-node-with #\; (princ-to-string x))))
+	     (ttt<> :x (finalize-node-with #\; x)))
 	   (insert-elliptic (x)
 	     (ttt-> :whatever #?"\n    ###x###")
 	     (ttt<> :x (princ-to-string x))))
-      (flet ((try-insert-else (tmpl elliptic-if-not)
+      (flet ((try-insert-else (tmpl fin-craving-fallback)
 	       (if else
 		   (progn (ttt-> :whatever tmpl)
-			  (if (elliptic-node-p else)
+			  (if (not (composite-node-p else))
 			      (progn (insert-elliptic else)
-				     (setf elliptic t))
+				     (setf fin-craving (fin-craving-p else)))
 			      (progn (insert else)
-				     (setf elliptic nil))))
-		   (setf elliptic elliptic-if-not))))
-	(if (elliptic-node-p then)
+				     (setf fin-craving nil))))
+		   (setf fin-craving fin-craving-fallback))))
+	(if (not (composite-node-p then))
 	    (progn (insert-elliptic then)
-		   (try-insert-else #?"\nelse" t))
+		   (try-insert-else #?"\nelse" (fin-craving-p then)))
 	    (progn (insert then)
 		   (try-insert-else #?" else" nil)))))
-    (make-instance 'if-node :text (finalize-template!) :elliptic elliptic)))
+    (make-instance 'if-node
+		   :text (finalize-template!)
+		   :composite nil
+		   :fin-craving fin-craving)))
 
 
