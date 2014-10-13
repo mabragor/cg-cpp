@@ -197,34 +197,72 @@ readtable is used."
 	      str)))))
 
 (setf *indent-style* :smart-butlast-newline)
+
+(defun insert (x)
+  (declare (special template))
+  (ttt-> :whatever #?" {\n    ###x###\n}")
+  (ttt<> :x (finalize-node-with #\; x)))
+
+(defun insert-elliptic (x)
+  (declare (special template))
+  (ttt-> :whatever #?"\n    ###x###")
+  (ttt<> :x (princ-to-string x)))
+
   
 (defun c++if (test then &optional else)
   (let ((template #?"if ($((princ-to-string test)))###whatever###")
 	fin-craving)
     (declare (special template))
-    (flet ((insert (x)
-	     (ttt-> :whatever #?" {\n    ###x###\n}")
-	     (ttt<> :x (finalize-node-with #\; x)))
-	   (insert-elliptic (x)
-	     (ttt-> :whatever #?"\n    ###x###")
-	     (ttt<> :x (princ-to-string x))))
-      (flet ((try-insert-else (tmpl fin-craving-fallback)
-	       (if else
-		   (progn (ttt-> :whatever tmpl)
-			  (if (not (composite-node-p else))
-			      (progn (insert-elliptic else)
-				     (setf fin-craving (fin-craving-p else)))
-			      (progn (insert else)
-				     (setf fin-craving nil))))
-		   (setf fin-craving fin-craving-fallback))))
-	(if (not (composite-node-p then))
-	    (progn (insert-elliptic then)
-		   (try-insert-else #?"\nelse" (fin-craving-p then)))
-	    (progn (insert then)
-		   (try-insert-else #?" else" nil)))))
+    (flet ((try-insert-else (tmpl fin-craving-fallback)
+	     (if else
+		 (progn (ttt-> :whatever tmpl)
+			(if (not (composite-node-p else))
+			    (progn (insert-elliptic else)
+				   (setf fin-craving (fin-craving-p else)))
+			    (progn (insert else)
+				   (setf fin-craving nil))))
+		 (setf fin-craving fin-craving-fallback))))
+      (if (not (composite-node-p then))
+	  (progn (insert-elliptic then)
+		 (try-insert-else #?"\nelse" (fin-craving-p then)))
+	  (progn (insert then)
+		 (try-insert-else #?" else" nil))))
     (make-instance 'if-node
 		   :text (finalize-template!)
 		   :composite nil
 		   :fin-craving fin-craving)))
 
 
+(defun %c++for (inits conds incrs body)
+  (let ((template (format nil "for (~{~a~^; ~})###whatever###"
+			  (mapcar #'princ-to-string (list inits conds incrs))))
+	fin-craving)
+    (declare (special template))
+    (if (not (composite-node-p body))
+	(progn (insert-elliptic body)
+	       (setf fin-craving (fin-craving-p body)))
+	(progn (insert body)
+	       (setf fin-craving nil)))
+    (make-instance 'for-node
+		   :text (finalize-template!)
+		   :composite nil
+		   :fin-craving fin-craving)))
+    
+(defmacro c++prog (&body forms)
+  `(%c++prog ,@(mapcar (lambda (x)
+			 `(let ((fin-context nil))
+			    ,x))
+		       forms)))
+  
+
+(defmacro c++for (inits conds incrs &body body)
+  `(%c++for (let ((fin-context :in-for))
+	      ,inits)
+	    (let ((fin-context :in-for))
+	      ,conds)
+	    (let ((fin-context :in-for))
+	      ,incrs)
+	    (c++prog ,@body)))
+	    
+	    
+		  
