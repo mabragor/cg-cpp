@@ -234,8 +234,11 @@ readtable is used."
 
 
 (defun %c++for (inits conds incrs body)
-  (let ((template (format nil "for (~{~a~^; ~})###whatever###"
-			  (mapcar #'princ-to-string (list inits conds incrs))))
+  (let ((template (format nil "for (~a)###whatever###"
+			  (joinl " " (nconc (mapcar (lambda (x)
+						      (finalize-node-with #\; x))
+						    (list inits conds))
+					    (list (finalize-node-with nil incrs))))))
 	fin-craving)
     (declare (special template))
     (if (not (composite-node-p body))
@@ -247,6 +250,18 @@ readtable is used."
 		   :text (finalize-template!)
 		   :composite nil
 		   :fin-craving fin-craving)))
+
+(defvar fin-context nil "The context that affects finalization of forms")
+
+(defun %c++prog (&rest forms)
+  (cond ((eq fin-context :in-for)
+	 (joinl " " (mapcar (lambda (x)
+			      (finalize-node-with #\, x))
+			    forms)))
+	(t (joinl "~%" (mapcar (lambda (x)
+				 (finalize-node-with #\; x))
+			       forms)))))
+
     
 (defmacro c++prog (&body forms)
   `(%c++prog ,@(mapcar (lambda (x)
