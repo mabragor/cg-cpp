@@ -256,10 +256,10 @@ readtable is used."
 (defun %c++prog (&rest forms)
   (cond ((eq fin-context :in-for)
 	 (joinl " " (mapcar (lambda (x)
-			      (finalize-node-with #\, x))
+			      (finalize-node-with #\, (stringify-if-symbol x)))
 			    forms)))
 	(t (joinl "~%" (mapcar (lambda (x)
-				 (finalize-node-with #\; x))
+				 (finalize-node-with #\; (stringify-if-symx))
 			       forms)))))
 
     
@@ -280,4 +280,5 @@ readtable is used."
 	    (c++prog ,@body)))
 	    
 	    
-		  
+;; (defun var-decl (name type &rest params)
+  
